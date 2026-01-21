@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>URL Shortener - Professional URL Shortening Service</title>
+    <link href="/public/style.css" rel="stylesheet" type="text/css" />
+  </head>
+  <body>
+    <div class="container">
+      <header>
+        <h1>🔗 URL Shortener</h1>
+        <p class="subtitle">Professional URL Shortening Service</p>
+      </header>
+
+      <main>
+        <section class="shortener-section">
+          <form id="shortenForm">
+            <div class="form-group">
+              <label for="url_input">Enter URL to shorten:</label>
+              <input 
+                id="url_input" 
+                type="url" 
+                name="url" 
+                placeholder="https://example.com" 
+                required
+              />
+            </div>
+            
+            <div class="form-group">
+              <label for="custom_alias">Custom Alias (Optional):</label>
+              <input 
+                id="custom_alias" 
+                type="text" 
+                name="customAlias" 
+                placeholder="my-custom-link"
+                pattern="[a-zA-Z0-9-]{3,20}"
+                title="3-20 characters, alphanumeric and hyphens only"
+              />
+              <small>3-20 characters, alphanumeric and hyphens only</small>
+            </div>
+
+            <button type="submit" id="submitBtn">
+              <span class="btn-text">Shorten URL</span>
+              <span class="btn-loader" style="display: none;">⏳</span>
+            </button>
+          </form>
+        </section>
+
+        <section id="resultSection" class="result-section" style="display: none;">
+          <div class="result-card">
+            <h3>✅ URL Shortened Successfully!</h3>
+            <div class="result-content">
+              <div class="result-item">
+                <label>Original URL:</label>
+                <a id="originalUrl" href="#" target="_blank" class="url-link"></a>
+              </div>
+              <div class="result-item">
+                <label>Short URL:</label>
+                <div class="short-url-container">
+                  <input type="text" id="shortUrl" readonly class="short-url-input" />
+                  <button id="copyBtn" class="copy-btn" title="Copy to clipboard">📋</button>
+                </div>
+              </div>
+              <div class="result-item">
+                <label>Short Code:</label>
+                <code id="shortCode"></code>
+              </div>
+              <div class="result-actions">
+                <button id="testBtn" class="action-btn">Test Link</button>
+                <button id="analyticsBtn" class="action-btn">View Analytics</button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section id="analyticsSection" class="analytics-section" style="display: none;">
+          <div class="analytics-card">
+            <h3>📊 Analytics</h3>
+            <div class="analytics-content">
+              <div class="stat-item">
+                <span class="stat-label">Total Clicks:</span>
+                <span class="stat-value" id="clickCount">0</span>
+              </div>
+              <div class="stat-item">
+                <span class="stat-label">Created:</span>
+                <span class="stat-value" id="createdAt">-</span>
+              </div>
+              <div class="stat-item">
+                <span class="stat-label">Last Clicked:</span>
+                <span class="stat-value" id="lastClicked">Never</span>
+              </div>
+            </div>
+            <button id="closeAnalyticsBtn" class="close-btn">Close</button>
+          </div>
+        </section>
+
+        <section id="errorSection" class="error-section" style="display: none;">
+          <div class="error-card">
+            <h3>❌ Error</h3>
+            <p id="errorMessage"></p>
+            <button id="closeErrorBtn" class="close-btn">Close</button>
+          </div>
+        </section>
+
+        <section class="info-section">
+          <h3>Features</h3>
+          <ul class="features-list">
+            <li>✅ Fast and reliable URL shortening</li>
+            <li>✅ Custom alias support</li>
+            <li>✅ Click analytics and tracking</li>
+            <li>✅ Duplicate URL detection</li>
+            <li>✅ Secure and rate-limited</li>
+          </ul>
+        </section>
+      </main>
+
+      <footer>
+        <p>Built with ❤️ by Chhavi</p>
+        <p><a href="/api/docs" target="_blank">API Documentation</a></p>
+      </footer>
+    </div>
+
+    <script>
+      const form = document.getElementById('shortenForm');
+      const resultSection = document.getElementById('resultSection');
+      const analyticsSection = document.getElementById('analyticsSection');
+      const errorSection = document.getElementById('errorSection');
+      const submitBtn = document.getElementById('submitBtn');
+      const btnText = submitBtn.querySelector('.btn-text');
+      const btnLoader = submitBtn.querySelector('.btn-loader');
+
+      form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        
+        const formData = new FormData(form);
+        const url = formData.get('url');
+        const customAlias = formData.get('customAlias');
+
+        // Hide previous results
+        resultSection.style.display = 'none';
+        errorSection.style.display = 'none';
+        analyticsSection.style.display = 'none';
+
+        // Show loading state
+        btnText.style.display = 'none';
+        btnLoader.style.display = 'inline';
+        submitBtn.disabled = true;
+
+        try {
+          const response = await fetch('/api/shorturl', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ url, customAlias: customAlias || undefined }),
+          });
+
+          const data = await response.json();
+
+          if (!response.ok) {
+            throw new Error(data.error || 'Failed to shorten URL');
+          }
+
+          // Display result
+          document.getElementById('originalUrl').href = data.original_url;
+          document.getElementById('originalUrl').textContent = data.original_url;
+          document.getElementById('shortUrl').value = data.short_url;
+          document.getElementById('shortCode').textContent = data.short_code;
+          
+          resultSection.style.display = 'block';
+          resultSection.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+
+          // Store short code for analytics
+          resultSection.dataset.shortCode = data.short_code;
+        } catch (error) {
+          document.getElementById('errorMessage').textContent = error.message;
+          errorSection.style.display = 'block';
+          errorSection.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        } finally {
+          btnText.style.display = 'inline';
+          btnLoader.style.display = 'none';
+          submitBtn.disabled = false;
+        }
+      });
+
+      // Copy to clipboard
+      document.getElementById('copyBtn').addEventListener('click', () => {
+        const shortUrlInput = document.getElementById('shortUrl');
+        shortUrlInput.select();
+        document.execCommand('copy');
+        
+        const copyBtn = document.getElementById('copyBtn');
+        const originalText = copyBtn.textContent;
+        copyBtn.textContent = '✅ Copied!';
+        setTimeout(() => {
+          copyBtn.textContent = originalText;
+        }, 2000);
+      });
+
+      // Test link
+      document.getElementById('testBtn').addEventListener('click', () => {
+        const shortUrl = document.getElementById('shortUrl').value;
+        window.open(shortUrl, '_blank');
+      });
+
+      // View analytics
+      document.getElementById('analyticsBtn').addEventListener('click', async () => {
+        const shortCode = resultSection.dataset.shortCode;
+        try {
+          const response = await fetch(`/api/analytics/${shortCode}`);
+          const data = await response.json();
+
+          document.getElementById('clickCount').textContent = data.clicks || 0;
+          document.getElementById('createdAt').textContent = new Date(data.created_at).toLocaleString();
+          document.getElementById('lastClicked').textContent = 
+            data.last_clicked ? new Date(data.last_clicked).toLocaleString() : 'Never';
+
+          analyticsSection.style.display = 'block';
+          analyticsSection.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        } catch (error) {
+          alert('Failed to fetch analytics: ' + error.message);
+        }
+      });
+
+      // Close buttons
+      document.getElementById('closeAnalyticsBtn').addEventListener('click', () => {
+        analyticsSection.style.display = 'none';
+      });
+
+      document.getElementById('closeErrorBtn').addEventListener('click', () => {
+        errorSection.style.display = 'none';
+      });
+    </script>
+  </body>
+</html>
